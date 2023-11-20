@@ -1,6 +1,7 @@
 # data files
 
 data/
+cache/
 
 
 # .DS_Store files
