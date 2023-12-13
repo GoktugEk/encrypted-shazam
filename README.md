@@ -51,6 +51,11 @@ unzip fma_metadata.zip
 unzip fma_small.zip
 ~~~
 
+### Generate Database
+
+### Generate Matching Circuit
+
+### Query Database
 
 ## References
 
