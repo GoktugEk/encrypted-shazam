@@ -248,8 +248,11 @@ def create_address_couples_from_spectograms(spectograms_file: str):
 
     return db
 
+
 def create_query_integer(query_path: str, target_audio_record_seconds: float = 3):
-    fft_results, sr = get_spectogram(query_path, record_length=target_audio_record_seconds)
+    fft_results, sr = get_spectogram(
+        query_path, record_length=target_audio_record_seconds
+    )
     constellation_map = create_constellation_map(fft_results)
 
     addresses_couples = _create_address_value_couples(constellation_map, 0)
@@ -276,6 +279,17 @@ def create_address_couples_from_audios(audios: dict):
     db = np.concatenate(addresses_couples)
 
     return db
+
+
+def split_db_into_songs(db: np.array, song_id_column: int) -> list:
+    songs = []
+
+    song_ids = np.unique(db[:, song_id_column])
+
+    for song_id in song_ids:
+        songs.append(db[db[:, song_id_column] == song_id])
+
+    return songs
 
 
 ### Utility Functions ###
@@ -538,24 +552,24 @@ def grid_search():
 
 
 ### Chunking Logic ###
-def chunk_anchor_times_of_songs(db, number_of_entries=25):
+def chunk_anchor_times_of_songs(db, column_size, number_of_entries=25):
     chunked_db = []
 
     for song in db:
         chunked_song = []
 
-        anchor_times = song[:, 3]
+        anchor_times = song[:, column_size - 2]
         anchor_times = np.unique(anchor_times)
 
         for anchor_time in anchor_times:
-            chunked = song[song[:, 3] == anchor_time]
+            chunked = song[song[:, column_size - 2] == anchor_time]
 
             chunked_size = chunked.shape[0]
 
             if chunked_size < number_of_entries:
-                zeros = np.zeros((number_of_entries - chunked_size, 5))
+                zeros = np.zeros((number_of_entries - chunked_size, column_size))
                 chunked = np.concatenate([chunked, zeros]).astype(np.uint16)
-                
+
             chunked_song.append(chunked)
 
         chunked_db.append(np.array(chunked_song).astype(np.uint16))
@@ -595,6 +609,49 @@ def chunkify_bits_of_db(db):
         new_db.append(np.array(chunked_song))
 
     return new_db
+
+
+def merge_numbers_bitwise(array: np.array, number_of_bits_to_encrypt: int) -> np.array:
+    nine_bit_mask = 2**9 - 1
+    bit_column: np.uint32 = (
+        ((array[:, 0] & nine_bit_mask) << 12)
+        | ((array[:, 1] & nine_bit_mask) << 3)
+        | (array[:, 2] & 0b111)
+    )
+
+    encrypted_bit_column = bit_column & (2**number_of_bits_to_encrypt - 1)
+
+    encrypt_chunked_columns = []
+    decrypted_bit_column = bit_column >> number_of_bits_to_encrypt
+
+    while number_of_bits_to_encrypt > 0:
+        if number_of_bits_to_encrypt >= 4:
+            encrypt_chunked_columns.append(
+                (encrypted_bit_column & 0b1111).reshape(-1, 1)
+            )
+            encrypted_bit_column = encrypted_bit_column >> 4
+            number_of_bits_to_encrypt -= 4
+        else:
+            encrypt_chunked_columns.append(
+                (encrypted_bit_column & (2**number_of_bits_to_encrypt - 1)).reshape(
+                    -1, 1
+                )
+            )
+            number_of_bits_to_encrypt = 0
+
+    if array.shape[1] == 5:
+        return np.concatenate(
+            [
+                decrypted_bit_column.reshape(-1, 1),
+                *encrypt_chunked_columns,
+                array[:, 3:],
+            ],
+            axis=1,
+        )
+    elif array.shape[1] == 3:
+        return np.concatenate(
+            [decrypted_bit_column.reshape(-1, 1), *encrypt_chunked_columns], axis=1
+        )
 
 
 # df = pd.read_csv("experiment_results.csv")
