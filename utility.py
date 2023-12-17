@@ -235,8 +235,10 @@ def create_address_couples_by_song(constellations_file: str):
 
         addresses[:, 2] = addresses[:, 2] * 10
         addresses[:, 3] = addresses[:, 3] * 100
+        
+        addresses[:, :4] =  addresses[:, :4].astype(np.uint32)
 
-        addresses_couples.append(addresses.astype(np.uint16))
+        addresses_couples.append(addresses.astype(np.uint32))
 
     return addresses_couples
 
@@ -253,7 +255,6 @@ def create_address_couples_from_spectograms(spectograms_file: str):
         )
 
     db = np.concatenate(addresses_couples)
-    db = db.astype(np.uint16)
 
     return db
 
@@ -432,6 +433,21 @@ def search_song(
     return constellation_map, results, found, found_in_first_three
 
 
+def search_song_with_query(db, query, report=True):
+    song_id = db[0][-1]
+    results = search_address(db, query)
+    processed_results = process_matches(results)
+    if report:
+        print_results(processed_results)
+
+    if len(processed_results) == 0:
+        return results, False, False
+    found = processed_results[0][0] == float(song_id)
+
+    found_in_first_three = float(song_id) in np.array(processed_results[:3])[:, 0]
+
+    return results, found, found_in_first_three
+
 ### EVALUATION FUNCTIONS ###
 
 
@@ -577,11 +593,11 @@ def chunk_anchor_times_of_songs(db, column_size, number_of_entries=25):
 
             if chunked_size < number_of_entries:
                 zeros = np.zeros((number_of_entries - chunked_size, column_size))
-                chunked = np.concatenate([chunked, zeros]).astype(np.uint16)
+                chunked = np.concatenate([chunked, zeros]).astype(np.uint32)
 
             chunked_song.append(chunked)
 
-        chunked_db.append(np.array(chunked_song).astype(np.uint16))
+        chunked_db.append(np.array(chunked_song).astype(np.uint32))
 
     return chunked_db
 
