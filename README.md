@@ -36,9 +36,13 @@ Pre-processing is the process of turning a `.mp3` recording into a set of addres
 - Noise reduction(filtering): Given a spectrogram, we divide the frequencies into 6 bins divided in logarithmic sizes(0-10, 10-20, 20-40, 40-80, 80-160, 160-511). In each bin, we decide on the strongest frequency and record that. The result of this process gives us the constellation map.
 - Fingerprinting: As we acquire the constellation maps, we would like to have an efficient algorithm for storing them, as well as comparing two different songs. This is achieved via storing hash values that consist of two frequencies and their time delta, namely our **addresses**. Each **anchor point** has its designated **target zone**, consisting of several points in its proximity, that are used for fingerprinting.
 
-### Unencrypted Song Matching
-
 ### Encrypted Song Matching
+
+Song matching essentially relies on the number of target zone matches. In the unencrypted algorithm, one can compute all matches for a given query concerning the database by linearly scanning and filtering entries of the database. Unsurprisingly, this is not doable in the encrypted setting.
+
+The first step of the encrypted matching is defining the privacy level. Addresses are 21 bits(f1: 9 bits, f2: 9 bits, ∆t: 3 bits), of which the user can decide to encrypt any number of them. This configurability allows the user to opt-in for more or less privacy by adjusting their compute resources or time for execution. Given a set of encrypted bits, we construct circuits that will match 25 partial encrypted addresses(5 anchor points with 5 target zone addresses) for each unit of time in a song. For a given database and query, we compute the result of this circuit for each `(database chunk, query chunk)` pair, and aggregate the results on the client side.
+
+The detailed documentation and code for this analysis can be found in `main.ipynb`.
 
 ### Cost Analysis
 
@@ -54,6 +58,8 @@ Although we cannot quantify $accuracy$ and $privacy$ precisely, we can quantify 
 
 ## Usage
 
+You can check out `main.ipynb` to see how you can use Encrypted Shazam!
+
 ### Download Data
 
 ~~~
@@ -66,12 +72,6 @@ curl -O https://os.unil.cloud.switch.ch/fma/fma_small.zip
 unzip fma_metadata.zip
 unzip fma_small.zip
 ~~~
-
-### Generate Database
-
-### Generate Matching Circuit
-
-### Query Database
 
 ## References
 
