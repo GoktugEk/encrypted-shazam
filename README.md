@@ -50,8 +50,7 @@ $accuracy = \beta \times size(database) \times size(query) / size(chunk) $
 
 $privacy = \gamma \times encryptionPrivacy(\verb|#|bits) $
 
-Although we cannot quantify $accuracy$ and $privacy$ precisely, we can quantify time as we can measure the time to run one circuit with a given configuration, and compute the total expected time. 
-
+Although we cannot quantify $accuracy$ and $privacy$ precisely, we can quantify time as we can measure the time to run one circuit with a given configuration, and compute the total expected time. We have added a function `estimate` that provides the user with the expected time to run an inference for a given parameter set.
 
 ## Usage
 
