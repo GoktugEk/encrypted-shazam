@@ -30,10 +30,10 @@ Our song database consists of thousands of address couples. When we receive a qu
 
 ### Pre-Processing
 
-Pre-processing is the process of turning an `.mp3` recording into a set of addresses in the song database.
+Pre-processing is the process of turning a `.mp3` recording into a set of addresses in the song database.
 
-- Sound-to-spectrogram conversion: The spectrogram is the visual representation of the recording. We divide the sound into small chunks, calculate the magnitudes of different frequencies for each chunk.
-- Noise reduction(filtering): Given a spectrogram, we divide the frequencies into 6 bins divided in logarithmic sizes(0-10, 10-20, 20-40, 40-80, 80-160, 160-511). In each bin, we decide the strongest frequency and record that. The result of this process gives us the constellation map.
+- Sound-to-spectrogram conversion: The spectrogram is the visual representation of the recording. We divide the sound into small chunks and calculate the magnitudes of different frequencies for each chunk.
+- Noise reduction(filtering): Given a spectrogram, we divide the frequencies into 6 bins divided in logarithmic sizes(0-10, 10-20, 20-40, 40-80, 80-160, 160-511). In each bin, we decide on the strongest frequency and record that. The result of this process gives us the constellation map.
 - Fingerprinting: As we acquire the constellation maps, we would like to have an efficient algorithm for storing them, as well as comparing two different songs. This is achieved via storing hash values that consist of two frequencies and their time delta, namely our **addresses**. Each **anchor point** has its designated **target zone**, consisting of several points in its proximity, that are used for fingerprinting.
 
 ### Unencrypted Song Matching
@@ -41,6 +41,11 @@ Pre-processing is the process of turning an `.mp3` recording into a set of addre
 ### Encrypted Song Matching
 
 ### Cost Analysis
+
+We implemented a set of configurations to our algorithm for controlling the time for inference, the accuracy, and the privacy. The parameters of the configuration are `database size(seconds)`, `query size(seconds)`, `chunk size(seconds)`, `encryption coefficient(#bits)`, and `parallelization coefficient(#cores)`.
+
+$time = \alpha \times (size(database) / size(chunk)) \times (size(query) / size(chunk)) \times encryptionTime(# bits) \times # cores \time $
+
 
 ## Usage
 
