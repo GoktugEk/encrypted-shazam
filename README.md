@@ -44,7 +44,13 @@ Pre-processing is the process of turning a `.mp3` recording into a set of addres
 
 We implemented a set of configurations to our algorithm for controlling the time for inference, the accuracy, and the privacy. The parameters of the configuration are `database size(seconds)`, `query size(seconds)`, `chunk size(seconds)`, `encryption coefficient(#bits)`, and `parallelization coefficient(#cores)`.
 
-$time = \alpha \times (size(database) / size(chunk)) \times (size(query) / size(chunk)) \times encryptionTime(\verb|#|bits) \times \verb|#|cores \time $
+$time = \alpha \times (size(database) / size(chunk)) \times (size(query) / size(chunk)) \times encryptionTime(\verb|#|bits) \times 1 / \verb|#|cores $
+
+$accuracy = \beta \times size(database) \times size(query) / size(chunk) $
+
+$privacy = \gamma \times encryptionPrivacy(\verb|#|bits) $
+
+Although we cannot quantify $accuracy$ and $privacy$ precisely, we can quantify time as we can measure the time to run one circuit with a given configuration, and compute the total expected time. 
 
 
 ## Usage
