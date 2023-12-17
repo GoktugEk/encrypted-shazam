@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import time
 import warnings
+
 warnings.filterwarnings("ignore")
 
 ### Spectogram Functions ###
@@ -149,7 +150,7 @@ def plot_constellation_map(
 ### Address Value Couple Functions ###
 
 
-def find_target_zone_for_anchor(
+def _find_target_zone_for_anchor(
     constellation_map, anchor_time, anchor_freq, anchor_index, target_zone_size=5
 ) -> int | None:
     step = int(np.ceil(target_zone_size / 2))
@@ -168,11 +169,11 @@ def find_target_zone_for_anchor(
     return None
 
 
-def create_address_value_couples(constellation_map, song_id: str, zone_size=5):
+def _create_address_value_couples(constellation_map, song_id: str, zone_size=5):
     addresses_couples = []
 
     for i, (anchor_time, anchor_freq) in enumerate(constellation_map):
-        target_zone_start = find_target_zone_for_anchor(
+        target_zone_start = _find_target_zone_for_anchor(
             constellation_map, anchor_time, anchor_freq, i, zone_size
         )
         if target_zone_start is None:
@@ -209,7 +210,7 @@ def create_address_couples(constellations_file: str):
 
     for song_id, constellation_map in constellations.items():
         addresses_couples.append(
-            create_address_value_couples(constellation_map, song_id)
+            _create_address_value_couples(constellation_map, song_id)
         )
     db = np.concatenate(addresses_couples)
 
@@ -221,7 +222,7 @@ def create_address_couples_by_song(constellations_file: str):
     addresses_couples = []
 
     for song_id, constellation_map in constellations.items():
-        addresses = create_address_value_couples(constellation_map, song_id)
+        addresses = _create_address_value_couples(constellation_map, song_id)
 
         addresses[:, 2] = addresses[:, 2] * 10
         addresses[:, 3] = addresses[:, 3] * 100
@@ -239,13 +240,26 @@ def create_address_couples_from_spectograms(spectograms_file: str):
         constellation_map = create_constellation_map(spectogram)
 
         addresses_couples.append(
-            create_address_value_couples(constellation_map, song_id)
+            _create_address_value_couples(constellation_map, song_id)
         )
 
     db = np.concatenate(addresses_couples)
     db = db.astype(np.uint16)
 
     return db
+
+def create_query_integer(query_path: str, target_audio_record_seconds: float = 3):
+    fft_results, sr = get_spectogram(query_path, record_length=target_audio_record_seconds)
+    constellation_map = create_constellation_map(fft_results)
+
+    addresses_couples = _create_address_value_couples(constellation_map, 0)
+
+    addresses_couples[:, 2] = addresses_couples[:, 2] * 10
+    addresses_couples[:, 3] = addresses_couples[:, 3] * 100
+
+    addresses_couples = addresses_couples.astype(np.uint16)
+
+    return addresses_couples[:, :3]
 
 
 def create_address_couples_from_audios(audios: dict):
@@ -256,14 +270,10 @@ def create_address_couples_from_audios(audios: dict):
         constellation_map = create_constellation_map(fft_results)
 
         addresses_couples.append(
-            create_address_value_couples(constellation_map, song_id)
+            _create_address_value_couples(constellation_map, song_id)
         )
 
     db = np.concatenate(addresses_couples)
-    db[:, 2] = db[:, 2] * 100
-    db[:, 3] = db[:, 3] * 100
-
-    db = db.astype(np.uint16)
 
     return db
 
@@ -299,13 +309,9 @@ def load_audios(path, num_audios=10):
 
 
 def search_address(db: np.array, query: np.array):
-    
-    
     indices = np.where((db[:, :3] == query[:, np.newaxis, :]).all(axis=2))[1]
-    
 
     return db[indices]
-
 
 
 def process_matches(matches: np.array):
@@ -319,7 +325,6 @@ def process_matches(matches: np.array):
 
     # Find unique song ids
     song_ids = np.unique(matches[:, 4])
-    print(song_ids)
 
     # Loop over each song id
     for song_id in song_ids:
@@ -328,7 +333,7 @@ def process_matches(matches: np.array):
 
         # Find the unique 4th numbers for the current song id
         _, counts_4th_numbers = np.unique(
-            song_matches_filtered[:, [0, 3]], axis=0, return_counts=True
+            song_matches_filtered[:, 3], axis=0, return_counts=True
         )
 
         # Calculate the target zone matches for each unique 4th number
@@ -385,7 +390,7 @@ def search_song(
         fft_results, mean_coefficient=mean_coefficient, hop_length=n_fft // 4
     )
     song_id = os.path.splitext(os.path.basename(target_audio_path))[0]
-    addresses_couples = create_address_value_couples(
+    addresses_couples = _create_address_value_couples(
         constellation_map, song_id, zone_size=zone_size
     )
     # select the first 3 columns as the addresses
@@ -501,35 +506,95 @@ def grid_search():
     searched_configs = pd.read_csv("experiment_results_2.csv")
 
     for number_of_audios in candidate_audio_numbers:
-            for mean_coefficient in candidate_mean_coefficient:
-                for zone_size in candidate_zone_size:
-                    for recording_length in candidate_recording_length:
-                        config_row = {
-                            "Number of Audios": [number_of_audios],
-                            "n_fft": [2205],
-                            "Mean Coefficient": [mean_coefficient],
-                            "Zone Size": [zone_size],
-                            "Recording Length": [recording_length],
-                        }
+        for mean_coefficient in candidate_mean_coefficient:
+            for zone_size in candidate_zone_size:
+                for recording_length in candidate_recording_length:
+                    config_row = {
+                        "Number of Audios": [number_of_audios],
+                        "n_fft": [2205],
+                        "Mean Coefficient": [mean_coefficient],
+                        "Zone Size": [zone_size],
+                        "Recording Length": [recording_length],
+                    }
 
-                        if (
-                            not searched_configs.iloc[:, :5]
-                            .isin(config_row)
-                            .all(axis=1)
-                            .any()
-                        ):
-                            run_experiment(
-                                number_of_audios,
-                                2205,
-                                mean_coefficient,
-                                zone_size,
-                                recording_length,
-                            )
-                        else:
-                            print("Skipped")
-                            print(config_row)
-                            print("-" * 20)
-                            print()
+                    if (
+                        not searched_configs.iloc[:, :5]
+                        .isin(config_row)
+                        .all(axis=1)
+                        .any()
+                    ):
+                        run_experiment(
+                            number_of_audios,
+                            2205,
+                            mean_coefficient,
+                            zone_size,
+                            recording_length,
+                        )
+                    else:
+                        print("Skipped")
+                        print(config_row)
+                        print("-" * 20)
+                        print()
+
+
+### Chunking Logic ###
+def chunk_anchor_times_of_songs(db, number_of_entries=25):
+    chunked_db = []
+
+    for song in db:
+        chunked_song = []
+
+        anchor_times = song[:, 3]
+        anchor_times = np.unique(anchor_times)
+
+        for anchor_time in anchor_times:
+            chunked = song[song[:, 3] == anchor_time]
+
+            chunked_size = chunked.shape[0]
+
+            if chunked_size < number_of_entries:
+                zeros = np.zeros((number_of_entries - chunked_size, 5))
+                chunked = np.concatenate([chunked, zeros]).astype(np.uint16)
+                
+            chunked_song.append(chunked)
+
+        chunked_db.append(np.array(chunked_song).astype(np.uint16))
+
+    return chunked_db
+
+
+def chunkify_bits_of_array(target_array):
+    assert target_array.shape[1] == 3
+
+    chunked_array = []
+
+    for i in range(2):
+        bitted_array = (target_array[:, i] >> 6 & 0b111).reshape(-1, 1)
+        chunked_array.append(bitted_array)
+        bitted_array = (target_array[:, i] >> 3 & 0b111).reshape(-1, 1)
+        chunked_array.append(bitted_array)
+        bitted_array = (target_array[:, i] & 0b111).reshape(-1, 1)
+        chunked_array.append(bitted_array)
+
+    chunked_array.append(target_array[:, 2].reshape(-1, 1))
+    chunked_array = np.concatenate(chunked_array, axis=1)
+
+    return chunked_array
+
+
+def chunkify_bits_of_db(db):
+    new_db = []
+    for song in db:
+        chunked_song = []
+        for chunk in song:
+            shifted_chunk = chunkify_bits_of_array(chunk[:, :3])
+            chunked_song.append(
+                np.array(np.concatenate([shifted_chunk, chunk[:, 3:]], axis=1))
+            )
+
+        new_db.append(np.array(chunked_song))
+
+    return new_db
 
 
 # df = pd.read_csv("experiment_results.csv")
