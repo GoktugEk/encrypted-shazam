@@ -38,6 +38,11 @@ def get_spectogram(
 def save_spectograms(
     mp3_files: list, filepath: str, n_fft: int = 2205, record_length: None | int = None
 ):
+    if not os.path.exists("cache"):
+        os.mkdir("cache")
+    if not os.path.exists("cache/spectograms"):
+        os.mkdir("cache/spectograms")
+    
     spectograms = {}
     for filename, path in mp3_files.items():
         fft_results, sr = get_spectogram(path, n_fft, record_length)
@@ -106,6 +111,10 @@ def save_constellation_maps(
     hop_length=551,
     mean_coefficient=0.8,
 ):
+    if not os.path.exists("cache"):
+        os.mkdir("cache")
+    if not os.path.exists("cache/constellation_maps"):
+        os.mkdir("cache/constellation_maps")
     spectograms = np.load(spectograms, allow_pickle=True).item()
     constellation_maps = {}
     for song_id, fft_results in spectograms.items():
