@@ -42,7 +42,7 @@ def save_spectograms(
         os.mkdir("cache")
     if not os.path.exists("cache/spectograms"):
         os.mkdir("cache/spectograms")
-    
+
     spectograms = {}
     for filename, path in mp3_files.items():
         fft_results, sr = get_spectogram(path, n_fft, record_length)
@@ -235,8 +235,8 @@ def create_address_couples_by_song(constellations_file: str):
 
         addresses[:, 2] = addresses[:, 2] * 10
         addresses[:, 3] = addresses[:, 3] * 100
-        
-        addresses[:, :4] =  addresses[:, :4].astype(np.uint32)
+
+        addresses[:, :4] = addresses[:, :4].astype(np.uint32)
 
         addresses_couples.append(addresses.astype(np.uint32))
 
@@ -448,6 +448,7 @@ def search_song_with_query(db, query, report=True):
 
     return results, found, found_in_first_three
 
+
 ### EVALUATION FUNCTIONS ###
 
 
@@ -525,9 +526,9 @@ def run_experiment(
 
     df = pd.DataFrame(data, columns=columns)
 
-    reports = pd.read_csv("experiment_results_2.csv")
+    reports = pd.read_csv("experiment_results.csv")
     reports = pd.concat([reports, df], ignore_index=True)
-    reports.to_csv("experiment_results_2.csv", index=False)
+    reports.to_csv("experiment_results.csv", index=False)
 
     print(f"Found: {found}%")
     print(f"Found in first three: {found_in_first_three}%")
@@ -542,7 +543,7 @@ def grid_search():
     candidate_recording_length = [5, 10, 20]
     # Grid search
 
-    searched_configs = pd.read_csv("experiment_results_2.csv")
+    searched_configs = pd.read_csv("experiment_results.csv")
 
     for number_of_audios in candidate_audio_numbers:
         for mean_coefficient in candidate_mean_coefficient:
@@ -679,10 +680,5 @@ def merge_numbers_bitwise(array: np.array, number_of_bits_to_encrypt: int) -> np
         )
 
 
-# df = pd.read_csv("experiment_results.csv")
-# df = df.sort_values(
-#     by=["Found", "Found in First Three", "Number of Audios"], ascending=False
-# )[df["Recording Length"] == 5]
-# df.head(20)
 if __name__ == "__main__":
     grid_search()
