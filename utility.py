@@ -338,7 +338,7 @@ def search_address(db: np.array, query: np.array):
     return db[indices]
 
 
-def process_matches(matches: np.array):
+def process_matches(matches: np.array, zone_size=5):
     # Count the matches by song ID, count anchor times that the ones are larger than 5,
     # Create a dictionary with the song id as the key, and the value is also a
     # dictionary which has address_matches and target_zone_matches as the keys,
@@ -420,7 +420,7 @@ def search_song(
     # select the first 3 columns as the addresses
     addresses = addresses_couples[:, :3]
     results = search_address(db, addresses)
-    processed_results = process_matches(results)
+    processed_results = process_matches(results, zone_size=zone_size)
     if report:
         print_results(processed_results, song_id=float(song_id))
 
@@ -526,9 +526,9 @@ def run_experiment(
 
     df = pd.DataFrame(data, columns=columns)
 
-    reports = pd.read_csv("experiment_results.csv")
+    reports = pd.read_csv("experiment_results_2.csv")
     reports = pd.concat([reports, df], ignore_index=True)
-    reports.to_csv("experiment_results.csv", index=False)
+    reports.to_csv("experiment_results_2.csv", index=False)
 
     print(f"Found: {found}%")
     print(f"Found in first three: {found_in_first_three}%")
@@ -543,7 +543,7 @@ def grid_search():
     candidate_recording_length = [5, 10, 20]
     # Grid search
 
-    searched_configs = pd.read_csv("experiment_results.csv")
+    searched_configs = pd.read_csv("experiment_results_2.csv")
 
     for number_of_audios in candidate_audio_numbers:
         for mean_coefficient in candidate_mean_coefficient:
