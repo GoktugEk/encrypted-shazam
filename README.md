@@ -69,6 +69,20 @@ The first step of the encrypted matching is defining the privacy level. Addresse
 
 The detailed documentation and code for this analysis can be found in `main.ipynb`.
 
+
+# Evaluation
+For the evaluation process, we utilized a database of 1000 songs, excluding one erroneous file, each comprising tracks of 30 seconds at a sample rate of 22050 Hz. During the evaluation, we focused on 999 tracks, using the 20 seconds for database creation and peak detection, while reserving 10 seconds for query testing.
+
+To clarify, we conducted peak detection on intervals 0-10 and 20-30 seconds for the database, and queries were performed on the 10-20 seconds interval.
+
+Upon receiving a query, we provided three song recommendations from the database. We considered both direct matches and matches within the first three guesses for evaluation.
+
+## Accuracy
+
+Our model achieved a search accuracy of **97.9%** within the first three guesses and **92.4%** in the first guess.
+
+
+
 ### Cost Analysis
 
 We implemented a set of configurations to our algorithm for controlling the time for inference, the accuracy, and the privacy. The parameters of the configuration are `database size(seconds)`, `query size(seconds)`, `chunk size(seconds)`, `encryption coefficient(#bits)`, and `parallelization coefficient(#cores)`.
@@ -116,7 +130,7 @@ cd data
 curl -O https://os.unil.cloud.switch.ch/fma/fma_metadata.zip
 curl -O https://os.unil.cloud.switch.ch/fma/fma_small.zip
 
-unzip fma_metadata.zip
+unzip fma_metadata.zipv
 unzip fma_small.zip
 ~~~
 

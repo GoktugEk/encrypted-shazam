@@ -13,20 +13,37 @@ warnings.filterwarnings("ignore")
 
 
 def get_spectogram(
-    mp3_file, n_fft=2205, record_length: None | int = None, random_seed=42
+    mp3_file, n_fft=2205, record_length: None | int | list = None, offset : None | float = None, random_seed=42
 ):
     random.seed(random_seed)
     # if record length exists, load the audio file with the duration, with random start
-    # point
-    if record_length is not None:
+    # point. If record length is a list, load the audio file except that interval.
+    if record_length is None:
+        y, sr = librosa.load(mp3_file)
+    if type(record_length) is int or type(record_length) is float:
         y, sr = librosa.load(
             mp3_file,
             duration=record_length,
             offset=random.random()
             * (librosa.get_duration(filename=mp3_file) - record_length),
         )
-    else:
-        y, sr = librosa.load(mp3_file)
+    elif type(record_length) is list:
+        y, sr = librosa.load(
+            mp3_file,
+            duration=record_length[0],
+            offset=offset if offset is not None else random.random()
+            * (librosa.get_duration(filename=mp3_file) - record_length[0]),
+        )
+        y = np.concatenate(
+            [
+                y,
+                librosa.load(
+                    mp3_file,
+                    duration=(librosa.get_duration(filename=mp3_file) - record_length[1]),
+                    offset=record_length[1],
+                )[0],
+            ]
+        )
 
     # encrypt the audio file
 
@@ -36,7 +53,7 @@ def get_spectogram(
 
 
 def save_spectograms(
-    mp3_files: list, filepath: str, n_fft: int = 2205, record_length: None | int = None
+    mp3_files: list, filepath: str, n_fft: int = 2205, record_length: None | int | list = None, offset: None | float = None
 ):
     if not os.path.exists("cache"):
         os.mkdir("cache")
@@ -45,7 +62,15 @@ def save_spectograms(
 
     spectograms = {}
     for filename, path in mp3_files.items():
-        fft_results, sr = get_spectogram(path, n_fft, record_length)
+        print(filename)
+        try:
+            fft_results, sr = get_spectogram(path, n_fft, record_length)
+        except KeyboardInterrupt:
+            exit()
+        except Exception as e:
+            print(e)
+            continue
+
 
         spectograms[os.path.splitext(filename)[0]] = fft_results
 
@@ -109,7 +134,7 @@ def save_constellation_maps(
     frame_duration=0.1,
     sr=22050,
     hop_length=551,
-    mean_coefficient=0.8,
+    mean_coefficient=1,
 ):
     if not os.path.exists("cache"):
         os.mkdir("cache")
@@ -361,7 +386,7 @@ def process_matches(matches: np.array, zone_size=5):
         )
 
         # Calculate the target zone matches for each unique 4th number
-        target_zone_matches = np.sum(counts_4th_numbers // 5)
+        target_zone_matches = np.sum(counts_4th_numbers // zone_size)
 
         song_matches.append(
             (song_id, np.sum(target_zone_matches), len(song_matches_filtered))
@@ -402,13 +427,14 @@ def search_song(
     db: np.array,
     target_audio_path: str,
     target_audio_record_seconds: int = 3,
+    target_seconds_offset: None | int = None,
     report: bool = True,
     n_fft=2205,
     mean_coefficient=0.8,
     zone_size=5,
 ):
     fft_results, sr = get_spectogram(
-        target_audio_path, record_length=target_audio_record_seconds, n_fft=n_fft
+        target_audio_path, record_length=target_audio_record_seconds, n_fft=n_fft, offset=target_seconds_offset
     )
     constellation_map = create_constellation_map(
         fft_results, mean_coefficient=mean_coefficient, hop_length=n_fft // 4
@@ -421,6 +447,7 @@ def search_song(
     addresses = addresses_couples[:, :3]
     results = search_address(db, addresses)
     processed_results = process_matches(results, zone_size=zone_size)
+    
     if report:
         print_results(processed_results, song_id=float(song_id))
 
@@ -430,7 +457,7 @@ def search_song(
 
     found_in_first_three = float(song_id) in np.array(processed_results[:3])[:, 0]
 
-    return constellation_map, results, found, found_in_first_three
+    return constellation_map, processed_results, found, found_in_first_three
 
 
 def search_song_with_query(db, query, report=True):
